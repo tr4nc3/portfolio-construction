@@ -53,3 +53,40 @@ def is_normal(r: pd.Series, level :float = 0.01 ) -> bool:
     '''
     statistic, p_value = scipy.stats.jarque_bera(r)
     return p_value > level
+
+def semi_deviation(r: pd.Series) -> pd.Series:
+    is_negative = r < 0
+    return r[is_negative].std()
+
+def var_historic(r: pd.Series, level :int = 5) -> pd.Series:
+    """
+    VaR historoc
+    :param r: Series or dataframe
+    :param level:
+    :return:  chance of losing level percentage
+    """
+    if isinstance(r, pd.DataFrame):
+        return r.aggregate(var_historic, level=level)
+    elif isinstance(r, pd.Series):
+        return -np.percentile(r, level)
+    else:
+        raise TypeError('Expected r to be a pd.Series or pd.dataFrame')
+
+from scipy.stats import norm
+def var_gaussian(r: pd.Series, level :int = 5) -> pd.Series:
+    #if isinstance(r, pd.DataFrame):
+    #    return r.aggregate(var_gaussian, level=level)
+    #elif isinstance(r, pd.Series):
+    z = norm.ppf(level/100)
+    return -(r.mean() + z * r.std(ddof=0))
+
+
+def cf_var(r, z_alpha) -> pd.Series:
+    if isinstance(r, pd.Series):
+        k = kurtosis(r)
+        s = skewness(r)
+        z_alpha_bar = z_alpha + (1/6) * (z_alpha ** 2 - 1) * s + (1/24) * (z_alpha ** 3 - 3 * z_alpha) * (k-3)\
+                       - (1/36) * (2 * z_alpha ** 3 - 5 * z_alpha) * (s ** 2)
+        return -(r.mean() + z_alpha_bar * r.std())
+    elif isinstance(r, pd.DataFrame):
+        return r.aggregate(cf_var, z_alpha, axis='columns')
