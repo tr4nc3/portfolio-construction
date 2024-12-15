@@ -73,13 +73,18 @@ def var_historic(r: pd.Series, level :int = 5) -> pd.Series:
         raise TypeError('Expected r to be a pd.Series or pd.dataFrame')
 
 from scipy.stats import norm
-def var_gaussian(r: pd.Series, level :int = 5) -> pd.Series:
-    #if isinstance(r, pd.DataFrame):
-    #    return r.aggregate(var_gaussian, level=level)
-    #elif isinstance(r, pd.Series):
+def var_gaussian(r: pd.Series, level :int = 5, modified :bool = False) -> float:
+    # compute z score as if this was a normal distribution
     z = norm.ppf(level/100)
+    if modified: # adjust z for cornish-fisher based on true distribution
+        s = skewness(r)
+        k = kurtosis(r)
+        z = (z +
+                (z**2 - 1)*s/6 +
+                (z**3 - 3*z)*(k-3)/24 -
+                (2*z**3 - 5*z)*(s**2)/36
+             )
     return -(r.mean() + z * r.std(ddof=0))
-
 
 def cf_var(r, z_alpha) -> pd.Series:
     if isinstance(r, pd.Series):
