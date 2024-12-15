@@ -86,6 +86,15 @@ def var_gaussian(r: pd.Series, level :int = 5, modified :bool = False) -> float:
              )
     return -(r.mean() + z * r.std(ddof=0))
 
+def cvar_historic(r: pd.Series, level :int = 5, modified :bool = False) -> float:
+    if isinstance(r, pd.Series):
+        is_beyond = r <= -var_historic(r, level=level)
+        return -r[is_beyond].mean()
+    elif isinstance(r, pd.DataFrame):
+        return r.aggregate(cvar_historic, level=level)
+    else:
+        raise TypeError('Expected r to be a pd.Series or pd.dataFrame')
+
 def cf_var(r, z_alpha) -> pd.Series:
     if isinstance(r, pd.Series):
         k = kurtosis(r)
